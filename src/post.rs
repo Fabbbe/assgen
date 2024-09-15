@@ -1,4 +1,4 @@
-// Copyright (c) Fabian Beskow 2024
+// Copyright 2024 (c) Fabian Beskow
 
 use std::fs;
 use std::error::Error;
@@ -6,17 +6,27 @@ use std::path::Path;
 //use markdown;
 
 /// The basic building block of a project, contains config for specific posts.
+#[derive(Debug)]
 pub struct Post {
     path: String,
     title: String,
     body: String,
 }
 
+impl Default for Post {
+    fn default() -> Self {
+        Post {
+            title: "untitled".into(),
+            path: "undefined".into(),
+            body: "undefined".into(),
+        }
+    }
+}
+
 impl Post {
     /// Creates a post struct from a markdown file
     pub fn from_file(file_path: &str) -> Result<Self, Box<dyn Error>> {
-
-        let mut title: String = "untitled".into();
+        let mut post: Post = Post::default();
 
         let markdown = fs::read_to_string(file_path)?;
 
@@ -34,7 +44,7 @@ impl Post {
             };
 
             match key {
-                "title"       => title = value.into(),
+                "title"       => post.title = value.into(),
                 /*
                 "cover_image" => out_post.cover_image = value.into(),
                 "keywords"    => {
@@ -55,13 +65,9 @@ impl Post {
             } 
         }
 
-        let path: String = file_path.into();
-        let body: String = markdown::to_html(body);
+        post.path = file_path.into();
+        post.body = markdown::to_html(body);
 
-        Ok(Post {
-            path,
-            title,
-            body,
-        })
+        Ok(post)
     }
 }
