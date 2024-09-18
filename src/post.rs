@@ -1,8 +1,14 @@
 // Copyright 2024 (c) Fabian Beskow
 
+use crate::defaults;
+
 use std::fs;
+use std::io::prelude::*;
 use std::error::Error;
 use std::path::Path;
+use strfmt::strfmt;
+use std::collections::HashMap;
+
 //use markdown;
 
 /// The basic building block of a project, contains config for specific posts.
@@ -24,6 +30,45 @@ impl Default for Post {
 }
 
 impl Post {
+
+    fn format_post(&self) -> Result<String, Box<dyn Error>> {
+        let template_string = fs::read_to_string(defaults::TEMPLATE_POST_FILE)?;
+        let mut vars = HashMap::new();
+
+        vars.insert("title".to_string(), self.title.clone());
+        vars.insert("body".to_string(), self.body.clone());
+
+        Ok(strfmt(&template_string, &vars)?)
+    }
+
+    /// format the 
+    pub fn output_to_file(&self, output_dir: &str) -> Result<(), Box<dyn Error>> {
+        let (dir, filename) = self.path.rsplit_once('/')
+            .unwrap_or(("",&self.path));
+
+        let output_filename = format!("{}.html", filename
+            .rsplit_once('.')
+            .unwrap_or(("undefined", "md")).0 // The file was not correctly named
+            );
+        let output_dir = format!("{}/{}", output_dir, dir);
+
+        fs::create_dir_all(&output_dir)
+            .or(Err(format!("Could not create dir '{}'", output_dir)))?;
+
+        let output_filepath = format!("{}/{}", output_dir, output_filename);
+
+        eprintln!("Generating file: {}", output_filepath);
+
+        let post_file_content = self.format_post()?;
+        //println!("asd: {:?}", post_file_content);
+        
+        let mut output_file = fs::File::create(&output_filepath)?;
+
+        output_file.write_all(&post_file_content.into_bytes())?;
+
+        Ok(())
+    }
+
     /// Creates a post struct from a markdown file
     pub fn from_file(file_path: &str) -> Result<Self, Box<dyn Error>> {
         let mut post: Post = Post::default();
@@ -35,8 +80,8 @@ impl Post {
             return Err(String::from("No metadata in post").into());
         };
 
-        for line in metadata.lines() { // Might error since metadata isn't a String
-            let Some((key, value)) = line.split_once('=')
+        for line in metadata.lines() { // Might error if metadata isn't a String
+            let Some((key, value)) = line.split_once(':')
             else { // no key=value pair in line
                 eprintln!("Invalid metadata in line: {}", line);
                 continue;
@@ -65,7 +110,9 @@ impl Post {
             } 
         }
 
-        post.path = file_path.into();
+        if let Some((_, path)) = file_path.split_once("content") {
+            post.path = path.into();
+        } 
         post.body = markdown::to_html(body);
 
         Ok(post)

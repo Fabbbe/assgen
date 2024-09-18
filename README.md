@@ -18,5 +18,10 @@ Generate the project in the current directory:
 $ assgen gen
 ```
 
+## TO DO
 
+* Get some content to output using basic templates, etc.
+* Create a way to index the pages.
+* Write a way to initialize a project.
+* Write the commandline interface.
 

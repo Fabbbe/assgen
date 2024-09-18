@@ -22,7 +22,7 @@ fn check_if_dir_empty(directory: &str) -> Result<bool, std::io::Error> {
 /// Recursivly list files in directory this might break if recursivly symlinked
 fn rlist_files(dir: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let mut files: Vec<String> = Vec::new();
-    let entries = fs::read_dir(dir)?;
+    let entries = fs::read_dir(dir).or(Err(format!("Cannot find \"{}\"", dir)))?;
 
     for entry in entries { 
         let entry = entry?;
@@ -41,6 +41,7 @@ fn rlist_files(dir: &str) -> Result<Vec<String>, Box<dyn Error>> {
 }
 
 /// The top struct of a project
+#[derive(Debug)]
 pub struct Website {
     config: Config,
     posts: Vec<Post>,
@@ -49,11 +50,14 @@ pub struct Website {
 impl Website {
     /// Creates the struct from files in the working directory
     fn from_working() -> Result<Website, Box<dyn Error>>{
-        let posts
-        let mut entries = fs::read_dir(directory)?;
+        //let mut entries = fs::read_dir(directory)?;
         Ok(Website {
             config: Config::from_file(defaults::CONFIG_FILE)?,
-            posts: 
+            posts: rlist_files(defaults::CONTENT_DIR)?
+                .iter()
+                //.map(|file| {println!("{}", file); return file;})
+                .map(|file| Post::from_file(file).unwrap_or_default())
+                .collect(),
         })
     }
 
@@ -67,8 +71,14 @@ impl Website {
     /// Generate the output for a project
     pub fn gen(path: &str) -> Result<(), Box<dyn Error>> {
         env::set_current_dir(Path::new(path))?;
+        let website = Self::from_working()?;
+        
+        eprintln!("{:?}", website);
 
-        todo!();
+        for post in website.posts {
+            post.output_to_file(defaults::OUT_DIR);
+        }
+
         Ok(())
     }
 }
