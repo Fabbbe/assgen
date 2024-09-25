@@ -1,8 +1,9 @@
 // Copyright (c) Fabian Beskow 2024
 
-mod post;
-mod config;
 mod defaults;
+mod config;
+mod post;
+mod index;
 
 use crate::post::Post;
 use crate::config::Config;
@@ -48,6 +49,37 @@ pub struct Website {
 }
 
 impl Website {
+
+    /// Initialize a project
+    pub fn init(path: &str) -> Result<(), Box<dyn Error>> {
+        if !check_if_dir_empty(path)? { // Avoid overwriting existing projects/dirs
+            eprintln!("Directory {} not empty!", path);
+            return Err("Directory not empty!".into());
+        }
+
+        env::set_current_dir(Path::new(path))?;
+
+        // Init the directory structure and content
+        defaults::create_default_dirs()?;
+        defaults::create_default_files()?;
+        
+        Ok(())
+    }
+
+    /// Generate the output for a project
+    pub fn gen(path: &str) -> Result<(), Box<dyn Error>> {
+        env::set_current_dir(Path::new(path))?;
+        let website = Self::from_working()?;
+        
+        eprintln!("{:?}", website);
+
+        for post in website.posts {
+            post.output_to_file(&website.config, defaults::OUT_DIR)?;
+        }
+
+        Ok(())
+    }
+
     /// Creates the struct from files in the working directory
     fn from_working() -> Result<Website, Box<dyn Error>>{
         //let mut entries = fs::read_dir(directory)?;
@@ -61,26 +93,6 @@ impl Website {
         })
     }
 
-    /// Initialize a project
-    pub fn init(path: &str) -> Result<(), Box<dyn Error>> {
-        check_if_dir_empty(path)?;
-        todo!();
-        Ok(())
-    }
-
-    /// Generate the output for a project
-    pub fn gen(path: &str) -> Result<(), Box<dyn Error>> {
-        env::set_current_dir(Path::new(path))?;
-        let website = Self::from_working()?;
-        
-        eprintln!("{:?}", website);
-
-        for post in website.posts {
-            post.output_to_file(defaults::OUT_DIR);
-        }
-
-        Ok(())
-    }
 }
 
 

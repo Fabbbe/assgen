@@ -7,9 +7,9 @@ use serde_derive::Deserialize;
 /// Any configuration that covers the whole project is fit in here
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Config {
-    blog_name: String,
-    base_path: String,
-    domain: String,
+    pub blog_name: String,
+    pub base_path: String,
+    pub domain: String,
 }
 
 impl Default for Config {
