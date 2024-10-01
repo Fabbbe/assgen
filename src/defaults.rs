@@ -8,7 +8,7 @@ pub const OUT_DIR: &str      = "out";
 pub const TEMPLATE_DIR: &str = "templates";
 pub const STATIC_DIR: &str   = "static";
 
-pub const CONFIG_FILE: &str = "Config.toml";
+pub const CONFIG_FILE: &str = "Assgen.toml";
 pub const CONFIG_FILE_CONTENT: &str = r#"
 # Default blog configuration file
 
