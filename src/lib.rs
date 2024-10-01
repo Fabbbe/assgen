@@ -4,9 +4,11 @@ mod defaults;
 mod config;
 mod post;
 mod index;
+mod utils;
 
 use crate::post::Post;
 use crate::config::Config;
+use crate::index::Index;
 
 use std::fs;
 use std::env;
@@ -20,32 +22,13 @@ fn check_if_dir_empty(directory: &str) -> Result<bool, std::io::Error> {
     Ok(first_entry.is_none())
 }
 
-/// Recursivly list files in directory this might break if recursivly symlinked
-fn rlist_files(dir: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let mut files: Vec<String> = Vec::new();
-    let entries = fs::read_dir(dir).or(Err(format!("Cannot find \"{}\"", dir)))?;
-
-    for entry in entries { 
-        let entry = entry?;
-        if entry.file_type()?.is_dir() { // Recurse into next dir
-            if let Some(dir) = entry.path().to_str() { 
-                if let Ok(mut dir_files) = rlist_files(dir) {
-                    files.append(dir_files.as_mut());
-                }
-            }
-        } else if let Some(file) = entry.path().to_str() { // Append file
-            files.push(file.to_string())
-        } 
-        
-    }
-    Ok(files)
-}
 
 /// The top struct of a project
 #[derive(Debug)]
 pub struct Website {
     config: Config,
     posts: Vec<Post>,
+    indexes: Vec<Index>
 }
 
 impl Website {
@@ -85,7 +68,7 @@ impl Website {
         //let mut entries = fs::read_dir(directory)?;
         Ok(Website {
             config: Config::from_file(defaults::CONFIG_FILE)?,
-            posts: rlist_files(defaults::CONTENT_DIR)?
+            posts: utils::rlist_files(defaults::CONTENT_DIR)?
                 .iter()
                 //.map(|file| {println!("{}", file); return file;})
                 .map(|file| Post::from_file(file).unwrap_or_default())
