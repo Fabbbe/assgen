@@ -3,24 +3,15 @@
 mod defaults;
 mod config;
 mod post;
-mod index;
 mod utils;
 
 use crate::post::Post;
 use crate::config::Config;
-use crate::index::Index;
 
-use std::fs;
 use std::env;
 use std::error::Error;
 use std::path::Path;
 
-/// Check if a dir is empty to avoid overwriting projects etc.
-fn check_if_dir_empty(directory: &str) -> Result<bool, std::io::Error> {
-    let mut entries = fs::read_dir(directory)?;
-    let first_entry = entries.next();
-    Ok(first_entry.is_none())
-}
 
 
 /// The top struct of a project
@@ -28,14 +19,13 @@ fn check_if_dir_empty(directory: &str) -> Result<bool, std::io::Error> {
 pub struct Website {
     config: Config,
     posts: Vec<Post>,
-    indexes: Vec<Index>
 }
 
 impl Website {
 
     /// Initialize a project
     pub fn init(path: &str) -> Result<(), Box<dyn Error>> {
-        if !check_if_dir_empty(path)? { // Avoid overwriting existing projects/dirs
+        if !utils::check_if_dir_empty(path)? { // Avoid overwriting existing projects/dirs
             eprintln!("Directory {} not empty!", path);
             return Err("Directory not empty!".into());
         }
@@ -66,8 +56,10 @@ impl Website {
     /// Creates the struct from files in the working directory
     fn from_working() -> Result<Website, Box<dyn Error>>{
         //let mut entries = fs::read_dir(directory)?;
+        let config = Config::from_file(defaults::CONFIG_FILE)?;
+
         Ok(Website {
-            config: Config::from_file(defaults::CONFIG_FILE)?,
+            config,
             posts: utils::rlist_files(defaults::CONTENT_DIR)?
                 .iter()
                 //.map(|file| {println!("{}", file); return file;})

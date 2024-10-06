@@ -16,7 +16,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             blog_name: "unimplemented".into(),
-            base_path: "/blog/".into(),
+            base_path: "".into(),
             domain: "blog.example.com".into(),
         }
     }
@@ -24,6 +24,7 @@ impl Default for Config {
 
 impl Config {
     fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+        // TODO: change to or_default
         let config: Config = toml::from_str(s)?;
         Ok(config)
     }

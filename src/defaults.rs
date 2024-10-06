@@ -13,19 +13,8 @@ pub const CONFIG_FILE_CONTENT: &str = r#"
 # Default blog configuration file
 
 blog_name="Example's Blog"
-base_path="/blog"
+base_path=""
 domain="www.example.com"
-"#;
-
-pub const TEMPLATE_INDEX_FILE: &str = "templates/index.html";
-pub const TEMPLATE_INDEX_FILE_CONTENT: &str = r#"<!DOCTYPE html>
-<head>
-    <title>{blog_name}</title>
-</head>
-<body>
-    <h1>{blog_name}</h1>
-    {posts}
-</body>
 "#;
 
 pub const TEMPLATE_POST_FILE: &str =  "templates/post.html";
@@ -35,6 +24,7 @@ pub const TEMPLATE_POST_FILE_CONTENT: &str = r#"<!DOCTYPE html>
   <title>{title}</title>
 </head>
 <body>
+  {posts}
   <h1>{title}</h1>
   {body}
  
@@ -58,11 +48,6 @@ pub fn create_default_files() -> std::io::Result<()> {
     { // Config file
         let mut file = fs::File::create(CONFIG_FILE)?;
         file.write_all(CONFIG_FILE_CONTENT.as_bytes())?;
-    }
-
-    { // Index template
-        let mut file = fs::File::create(TEMPLATE_INDEX_FILE)?;
-        file.write_all(TEMPLATE_INDEX_FILE_CONTENT.as_bytes())?;
     }
 
     { // Post template

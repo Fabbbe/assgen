@@ -1,6 +1,7 @@
 // Copyright 2024 (c) Fabian Beskow
 
 use crate::defaults;
+use crate::utils;
 use crate::config::Config;
 
 use std::fs;
@@ -14,9 +15,9 @@ use std::collections::HashMap;
 /// The basic building block of a project, contains config for specific posts.
 #[derive(Debug)]
 pub struct Post {
-    path: String,
-    title: String,
-    body: String,
+    pub path: String,
+    pub title: String,
+    pub body: String,
 }
 
 impl Default for Post {
@@ -29,35 +30,61 @@ impl Default for Post {
     }
 }
 
-impl Post {
+impl Post { 
 
+    pub fn vec_to_html(posts: Vec<Post>, config: &Config) -> String {
+        let mut post_list: String = "<ul>".to_string();
+        for post in posts {
+            let post_element = format!(
+                "<li><a href=\"{}{}\">{}</a></li>", 
+                config.base_path, 
+                post.path,
+                post.path,
+            );
+            // Remove the risk of starting a link with double slash
+            let post_element = post_element.replace("//", "/"); 
+            post_list.push_str(&post_element);
+            //eprintln!("{}", post_element);
+        }
+        post_list.push_str("</ul>");
+
+        post_list
+    }
+
+    /// Takes a config and other posts that we want indexed
     fn format_post(&self, config: &Config) -> Result<String, Box<dyn Error>> {
         let template_string = fs::read_to_string(defaults::TEMPLATE_POST_FILE)?;
+
+        let posts = utils::rlist_files(defaults::CONTENT_DIR)?
+            .iter()
+            //.map(|file| {println!("{}", file); return file;})
+            .map(|file| Post::from_file(file).unwrap_or_default())
+            .collect::<Vec<Post>>();
+
+        let post_list = Self::vec_to_html(posts, config);
+
         let mut vars = HashMap::new();
 
         vars.insert("title".to_string(), self.title.clone());
         vars.insert("body".to_string(), self.body.clone());
         vars.insert("blog_name".to_string(), config.blog_name.clone());
+        vars.insert("posts".to_string(), post_list);
 
         Ok(strfmt(&template_string, &vars)?)
     }
 
     /// format the 
     pub fn output_to_file(&self, config: &Config, output_dir: &str) -> Result<(), Box<dyn Error>> {
-        let (dir, filename) = self.path.rsplit_once('/')
+        let (dir, _) = self.path.rsplit_once('/')
             .unwrap_or(("",&self.path));
 
-        let output_filename = format!("{}.html", filename
-            .rsplit_once('.')
-            .unwrap_or(("undefined", "md")).0 // The file was not correctly named
-            );
         let output_dir = format!("{}/{}", output_dir, dir);
 
         // Create all parent dirs
         fs::create_dir_all(&output_dir)
             .or(Err(format!("Could not create dir '{}'", output_dir)))?;
 
-        let output_filepath = format!("{}/{}", output_dir, output_filename);
+        let output_filepath = format!("{}/{}", output_dir, self.path);
         eprintln!("Generating file: {}", output_filepath);
 
         let post_file_content = self.format_post(config)?;
@@ -91,6 +118,7 @@ impl Post {
 
             match key {
                 "title"       => post.title = value.into(),
+                // For adding in the future:
                 /*
                 "cover_image" => out_post.cover_image = value.into(),
                 "keywords"    => {
@@ -112,7 +140,10 @@ impl Post {
         }
 
         if let Some((_, path)) = file_path.split_once("content") {
-            post.path = path.into();
+            let output_filename = format!("{}.html", path
+                .rsplit_once('.')
+                .unwrap_or((path, "md")).0); // The filename did not include a period
+            post.path = output_filename;
         } 
         post.body = markdown::to_html(body);
 
