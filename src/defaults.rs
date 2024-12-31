@@ -24,7 +24,6 @@ pub const TEMPLATE_POST_FILE_CONTENT: &str = r#"<!DOCTYPE html>
   <title>{title}</title>
 </head>
 <body>
-  {posts}
   <h1>{title}</h1>
   {body}
  
@@ -44,7 +43,7 @@ pub fn create_default_dirs() -> std::io::Result<()> {
 
 pub fn create_default_files() -> std::io::Result<()> {
 
-    // None of these should error now
+    // None of these should error after creating the directories
     { // Config file
         let mut file = fs::File::create(CONFIG_FILE)?;
         file.write_all(CONFIG_FILE_CONTENT.as_bytes())?;

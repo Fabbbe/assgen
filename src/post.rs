@@ -3,6 +3,7 @@
 use crate::defaults;
 use crate::utils;
 use crate::config::Config;
+use crate::templates;
 
 use std::fs;
 use std::io::prelude::*;
@@ -13,7 +14,7 @@ use std::collections::HashMap;
 //use markdown;
 
 /// The basic building block of a project, contains config for specific posts.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Post {
     pub path: String,
     pub title: String,
@@ -52,25 +53,8 @@ impl Post {
     }
 
     /// Takes a config and other posts that we want indexed
-    fn format_post(&self, config: &Config) -> Result<String, Box<dyn Error>> {
-        let template_string = fs::read_to_string(defaults::TEMPLATE_POST_FILE)?;
-
-        let posts = utils::rlist_files(defaults::CONTENT_DIR)?
-            .iter()
-            //.map(|file| {println!("{}", file); return file;})
-            .map(|file| Post::from_file(file).unwrap_or_default())
-            .collect::<Vec<Post>>();
-
-        let post_list = Self::vec_to_html(posts, config);
-
-        let mut vars = HashMap::new();
-
-        vars.insert("title".to_string(), self.title.clone());
-        vars.insert("body".to_string(), self.body.clone());
-        vars.insert("blog_name".to_string(), config.blog_name.clone());
-        vars.insert("posts".to_string(), post_list);
-
-        Ok(strfmt(&template_string, &vars)?)
+    fn format_post(&self, config: &Config) -> String {
+        templates::gen_post(&self.title, &self.body, &config.blog_name)
     }
 
     /// format the 
@@ -87,7 +71,7 @@ impl Post {
         let output_filepath = format!("{}/{}", output_dir, self.path);
         eprintln!("Generating file: {}", output_filepath);
 
-        let post_file_content = self.format_post(config)?;
+        let post_file_content = self.format_post(config);
         //println!("asd: {:?}", post_file_content);
         
         // Create and write file in output dir
@@ -103,10 +87,13 @@ impl Post {
 
         let markdown = fs::read_to_string(file_path)?;
 
-        let Some((metadata, body)) = markdown.split_once("---") 
-        else { // No metadata in markdown
-            return Err(String::from("No metadata in post").into());
-        };
+        let data: Vec<&str> = markdown.split("---").collect();
+        if data.len() < 2 {
+            return Err(format!("No metadata in file {}", file_path).into());
+        }
+
+        let metadata = data[0];
+        let body = data[1];
 
         for line in metadata.lines() { // Might error if metadata isn't a String
             let Some((key, value)) = line.split_once(':')

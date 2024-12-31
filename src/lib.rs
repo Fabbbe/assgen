@@ -4,9 +4,12 @@ mod defaults;
 mod config;
 mod post;
 mod utils;
+mod index;
+mod templates;
 
 use crate::post::Post;
 use crate::config::Config;
+use crate::index::Index;
 
 use std::env;
 use std::error::Error;
@@ -46,10 +49,17 @@ impl Website {
         
         eprintln!("{:?}", website);
 
+        // Generate posts
         for post in website.posts {
-            post.output_to_file(&website.config, defaults::OUT_DIR)?;
+            post.output_to_file(&website.config, defaults::OUT_DIR)
+                .unwrap();
         }
 
+        // Generate indexes
+        for index in &website.config.indexes {
+            eprintln!("{}", Index::from_path(&index.title, &index.path)?.to_html(&website.config));
+        }
+        
         Ok(())
     }
 
@@ -62,7 +72,7 @@ impl Website {
             config,
             posts: utils::rlist_files(defaults::CONTENT_DIR)?
                 .iter()
-                //.map(|file| {println!("{}", file); return file;})
+                //.inspect(|file| println!("{}", file))
                 .map(|file| Post::from_file(file).unwrap_or_default())
                 .collect(),
         })
